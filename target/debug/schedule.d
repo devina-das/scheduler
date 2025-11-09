@@ -1,1 +1,1 @@
-/Users/devinadas/Downloads/schedule/target/debug/schedule: /Users/devinadas/Downloads/schedule/src/lib.rs /Users/devinadas/Downloads/schedule/src/main.rs
+/Users/devinadas/projects/scheduler/target/debug/schedule: /Users/devinadas/projects/scheduler/src/lib.rs /Users/devinadas/projects/scheduler/src/main.rs

@@ -6,10 +6,6 @@ pub enum DayOfWeek {
     Mon, Tue, Wed, Thu, Fri, Sat, Sun
 }
 
-pub enum TaskAtb {
-    Title, Time, Desc
-}
-
 // title is basically a quick description
 // time is when it takes place. 24-hour clock and 23:59 is repped as 23.59
 // desc is a more in-depth description
@@ -88,7 +84,7 @@ impl List {
 
     // edits the specifiec task (by target_id)
     // should also re-order if time is edited
-    pub fn edit_task(target_id: usize, to_edit: TaskAtb) {
+    pub fn edit_task(target_id: usize) {
         todo!();
     }
 

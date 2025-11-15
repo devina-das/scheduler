@@ -1,11 +1,17 @@
 use indexmap::IndexMap;
-use std::cmp::Ordering;
+use std::{cmp::Ordering};
 use enum_iterator::{all, Sequence};
 
 #[derive(Debug, Clone, Copy)]
 pub enum SchedulerError {
-    InvalidTime
+    InvalidTimeFormat, InvalidTime
 }
+
+pub enum TaskAttribute {
+    Title, Day, Time, Desc 
+}
+
+// -----------------------------------------------DayOfWeek-----------------------------------------------
 
 #[derive(Sequence, Hash, PartialEq, Eq, Debug, Clone, Copy)]
 pub enum DayOfWeek {
@@ -26,27 +32,26 @@ impl ToString for DayOfWeek {
     }
 }
 
+fn string_to_day(day: String) -> Option<DayOfWeek> {
+    match day.as_str() {
+        "Monday" => Some(DayOfWeek::Mon),
+        "Tuesday" => Some(DayOfWeek::Tue),
+        "Wednesday" => Some(DayOfWeek::Wed),
+        "Thursday" => Some(DayOfWeek::Thu),
+        "Friday" => Some(DayOfWeek::Fri),
+        "Saturday" => Some(DayOfWeek::Sat),
+        "Sunday" => Some(DayOfWeek::Sun),
+        _ => None,
+    }
+}
+
+// -----------------------------------------------Time-----------------------------------------------
+
+// TIME FORMAT
 #[derive(Debug, Clone, Copy)]
 pub struct Time {
     hour: usize,
     mins: usize
-}
-impl Time {
-    pub fn new(time: String) -> Result<Self, SchedulerError> {
-        let parts: Vec<&str> = time.split(".").collect();
-        if parts.len() != 2 {
-            return Err(SchedulerError::InvalidTime);
-        }
-        let h = parts[0].parse::<usize>().unwrap();
-        let m = parts[1].parse::<usize>().unwrap();
-        if h > 23 || m > 59 {
-            return Err(SchedulerError::InvalidTime);
-        }
-        Ok(Self {
-            hour: h,
-            mins: m
-        })
-    }
 }
 
 impl ToString for Time {
@@ -75,9 +80,36 @@ impl PartialOrd for Time {
     }
 }
 
-pub enum TaskAttribute {
-    Title, Day, Time, Desc 
+impl Time {
+    // NEW TIME -> from String input
+    pub fn new(time: String) -> Result<Self, SchedulerError> {
+        let parts: Vec<&str> = time.split(".").collect();
+        if parts.len() != 2 {
+            return Err(SchedulerError::InvalidTimeFormat);
+        }
+
+        let hour = parts[0].parse::<usize>();
+        let min = parts[1].parse::<usize>();
+
+        if hour.is_err() || min.is_err() {
+            return Err(SchedulerError::InvalidTime);
+        }
+
+        let h_checked = hour.unwrap();
+        let m_checked = min.unwrap();
+
+        if h_checked > 23 || m_checked > 59 {
+            return Err(SchedulerError::InvalidTime);
+        }
+        Ok(Self {
+            hour: h_checked,
+            mins: m_checked
+        })
+
+    }
 }
+
+// -----------------------------------------------Task-----------------------------------------------
 
 // CHANGED: time (f64) -> time (Time)
 #[derive(Debug, Clone)]
@@ -100,21 +132,25 @@ impl Task {
     }
 }
 
+// -----------------------------------------------List-----------------------------------------------
 pub struct List {
     next_id: usize,
     schedule: IndexMap<DayOfWeek, Vec<Task>>
 }
 
-impl List {
+impl Default for List {
     // CHANGED: simplified the function
-    pub fn new() -> Self {
+    fn default() -> Self {
         Self {
             next_id : 0,
             schedule: all::<DayOfWeek>().map(|day| (day, Vec::<Task>::new())).collect()
         }
     }
+}
 
+impl List {
     // ADD TASK
+    // CHANGED: accepts Time insted of f64
     pub fn add_task(&mut self, day: DayOfWeek, title: String, time: Time, desc: String) {
         let new_task = Task {id: self.next_id, day: day, title: title, time: time, desc: desc};
         let target_day = self.schedule.get_mut(&day).unwrap();
@@ -156,7 +192,7 @@ impl List {
                     }
                     TaskAttribute::Day => {
                         let old = self.schedule.get_mut(&day).unwrap().remove(idx);
-                        let new_day =  to_day(new).unwrap();
+                        let new_day =  string_to_day(new).unwrap();
                         self.add_task(new_day, old.title, old.time, old.desc);
                     }
                 }
@@ -165,7 +201,7 @@ impl List {
         }
     }
 
-    // displays the entire list
+    // DISPLAY TASKS
     pub fn display(&self) {
         println!("----------------------------------------");
         for (day, tasks) in &self.schedule {
@@ -198,18 +234,5 @@ impl List {
             }
         }
         out
-    }
-}
-
-fn to_day(day: String) -> Option<DayOfWeek> {
-    match day.as_str() {
-        "Monday" => Some(DayOfWeek::Mon),
-        "Tuesday" => Some(DayOfWeek::Tue),
-        "Wednesday" => Some(DayOfWeek::Wed),
-        "Thursday" => Some(DayOfWeek::Thu),
-        "Friday" => Some(DayOfWeek::Fri),
-        "Saturday" => Some(DayOfWeek::Sat),
-        "Sunday" => Some(DayOfWeek::Sun),
-        _ => None,
     }
 }

@@ -1,5 +1,5 @@
 use eframe::egui;
-use schedule::{DayOfWeek, List};
+use schedule::{DayOfWeek, List, Time, SchedulerError};
 
 fn main() -> eframe::Result<()> {
     let options = eframe::NativeOptions::default();
@@ -23,7 +23,7 @@ struct SchedulerApp {
 impl Default for SchedulerApp {
     fn default() -> Self {
         Self {
-            list: List::new(),
+            list: List::default(),
             new_title: String::new(),
             new_desc: String::new(),
             new_time: String::new(),
@@ -46,7 +46,7 @@ impl eframe::App for SchedulerApp {
             });
 
             ui.horizontal(|ui| {
-                ui.label("Time (H.MM):");
+                ui.label("Time (HH.MM):");
                 ui.text_edit_singleline(&mut self.new_time);
             });
 
@@ -79,22 +79,21 @@ impl eframe::App for SchedulerApp {
 
             if ui.button("Add Task").clicked() {
                 // client-side validation of time format (H.MM) to give immediate feedback
-                match self.new_time.trim().replace(',', ".").parse::<f64>() {
+                match Time::new(self.new_time.trim().replace(',', ".")) {
                     Ok(t) => {
-                        if is_valid_time(t) {
-                            if let Some(day) = idx_to_day(self.new_day_idx) {
-                                let title = std::mem::take(&mut self.new_title);
-                                let desc = std::mem::take(&mut self.new_desc);
-                                self.list.add_task(day, title, time, desc);
-                                self.status_message = format!("Added task at {} on {}", t, to_string(day));
-                                self.new_time.clear();
-                            }
-                        } else {
-                            self.status_message = String::from("Invalid time: minutes must be < 60 and hour 0-23");
+                        if let Some(day) = idx_to_day(self.new_day_idx) {
+                            let title = std::mem::take(&mut self.new_title);
+                            let desc = std::mem::take(&mut self.new_desc);
+                            self.list.add_task(day, title, t, desc);
+                            self.status_message = format!("Added task at {} on {}", t.to_string(), day.to_string());
+                            self.new_time.clear();
                         }
                     }
-                    Err(_) => {
-                        self.status_message = String::from("Invalid time format. Use HH.MM (e.g. 9.30)");
+                    Err(error) => {
+                        match error {
+                            SchedulerError::InvalidTimeFormat => self.status_message = String::from("Invalid time format. Use HH.MM (e.g. 9.30)"),
+                            SchedulerError::InvalidTime => self.status_message = String::from("Invalid time")
+                        }
                     }
                 }
             }
@@ -119,14 +118,14 @@ impl eframe::App for SchedulerApp {
                     let mut any = false;
                     for t in tasks.iter().filter(|t| t.0 == *day) {
                         any = true;
-                        // t is a reference to (DayOfWeek, usize, String, f64, String)
+                        // t is a reference to (DayOfWeek, usize, String, Time, String)
                         let id = t.1;
                         let title = &t.2;
                         let time = t.3;
                         let desc = &t.4;
 
                         ui.horizontal(|ui| {
-                            ui.label(format!("#{} - {} @ {}", id, title, time));
+                            ui.label(format!("{} @ {}", title, time.to_string()));
                             if ui.small_button("Remove").clicked() {
                                 self.list.remove_task(id);
                                 self.status_message = format!("Removed {}", id);
@@ -146,12 +145,6 @@ impl eframe::App for SchedulerApp {
             }
         });
     }
-}
-
-fn is_valid_time(time: f64) -> bool {
-    let int = time.floor();
-    let dec = time - int;
-    int >= 0.00 && int < 24.00 && dec >= 0.00 && dec < 0.60
 }
 
 fn idx_to_day(idx: usize) -> Option<DayOfWeek> {

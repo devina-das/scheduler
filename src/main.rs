@@ -131,7 +131,10 @@ impl eframe::App for SchedulerApp {
                                 self.status_message = format!("Removed {}", id);
                             }
                         });
-                        ui.label(desc);
+                        ui.horizontal(|ui| {
+                            ui.add_space(20.0);
+                            ui.label(desc);
+                        });
                     }
                     if !any {
                         ui.label("No tasks");

@@ -1,11 +1,13 @@
 use indexmap::IndexMap;
 use std::{cmp::Ordering};
 pub use enum_iterator::{all, Sequence};
+use chrono::{Datelike, Local, Duration};
 
 use std::fs::File;
 use std::io::{BufReader};
 use serde::{Serialize, Deserialize};
 
+// -----------------------------------------------Errors-----------------------------------------------
 #[derive(Serialize, Deserialize, Debug, Clone, Copy)]
 pub enum TimeError {
     InvalidTimeFormat, InvalidTime
@@ -14,24 +16,23 @@ pub enum TimeError {
 pub enum FileError {
     FileReadError, FileWriteError
 }
-
 // -----------------------------------------------DayOfWeek-----------------------------------------------
 
 #[derive(Serialize, Deserialize, Sequence, Hash, PartialEq, Eq, Debug, Clone, Copy)]
 pub enum DayOfWeek {
-    Mon, Tue, Wed, Thu, Fri, Sat, Sun
+    Sun, Mon, Tue, Wed, Thu, Fri, Sat
 }
 
 impl ToString for DayOfWeek {
     fn to_string(&self) -> String { 
         match self {
+            DayOfWeek::Sun => String::from("Sunday"),
             DayOfWeek::Mon => String::from("Monday"),
             DayOfWeek::Tue => String::from("Tuesday"),
             DayOfWeek::Wed => String::from("Wednesday"),
             DayOfWeek::Thu => String::from("Thursday"),
             DayOfWeek::Fri => String::from("Friday"),
-            DayOfWeek::Sat => String::from("Saturday"),
-            DayOfWeek::Sun => String::from("Sunday")
+            DayOfWeek::Sat => String::from("Saturday")
         }
     }
 }
@@ -40,34 +41,61 @@ impl TryFrom<usize> for DayOfWeek {
     type Error = ();
     fn try_from(value: usize) -> Result<Self, Self::Error> {
         match value {
-            0 => Ok(DayOfWeek::Mon),
-            1 => Ok(DayOfWeek::Tue),
-            2 => Ok(DayOfWeek::Wed),
-            3 => Ok(DayOfWeek::Thu),
-            4 => Ok(DayOfWeek::Fri),
-            5 => Ok(DayOfWeek::Sat),
-            6 => Ok(DayOfWeek::Sun),
+            0 => Ok(DayOfWeek::Sun),
+            1 => Ok(DayOfWeek::Mon),
+            2 => Ok(DayOfWeek::Tue),
+            3 => Ok(DayOfWeek::Wed),
+            4 => Ok(DayOfWeek::Thu),
+            5 => Ok(DayOfWeek::Fri),
+            6 => Ok(DayOfWeek::Sat),
             _ => Err(())
         }
     }
 }
 
-impl DayOfWeek {
-    pub fn to_idx(&self) -> usize {
-        match self {
-            DayOfWeek::Mon => 0,
-            DayOfWeek::Tue => 1,
-            DayOfWeek::Wed => 2,
-            DayOfWeek::Thu => 3,
-            DayOfWeek::Fri => 4,
-            DayOfWeek::Sat => 5,
-            DayOfWeek::Sun => 6,
+impl From<DayOfWeek> for usize {
+    fn from(value: DayOfWeek) -> Self {
+        match value {
+            DayOfWeek::Sun => 0,
+            DayOfWeek::Mon => 1,
+            DayOfWeek::Tue => 2,
+            DayOfWeek::Wed => 3,
+            DayOfWeek::Thu => 4,
+            DayOfWeek::Fri => 5,
+            DayOfWeek::Sat => 6
         }
     }
 }
-// -----------------------------------------------Time-----------------------------------------------
 
-// TIME FORMAT
+impl From<DayOfWeek> for chrono::Weekday {
+    fn from(value: DayOfWeek) -> Self {
+        match value {
+            DayOfWeek::Sun => chrono::Weekday::Sun,
+            DayOfWeek::Mon => chrono::Weekday::Mon,
+            DayOfWeek::Tue => chrono::Weekday::Tue,
+            DayOfWeek::Wed => chrono::Weekday::Wed,
+            DayOfWeek::Thu => chrono::Weekday::Thu,
+            DayOfWeek::Fri => chrono::Weekday::Fri,
+            DayOfWeek::Sat => chrono::Weekday::Sat
+        }
+    }
+}
+
+impl DayOfWeek {
+    pub fn date(&self) -> String {
+        let now = Local::now().date_naive();
+
+        let sunday_diff = now.weekday().num_days_from_sunday();
+        let sunday = now - Duration::days(sunday_diff.into());
+
+        let diff = chrono::Weekday::from(*self).num_days_from_sunday();
+        let date = sunday + Duration::days(diff.into());
+
+        format!("{}/{}", date.month(), date.day())
+    }
+}
+
+// -----------------------------------------------Time-----------------------------------------------
 #[derive(Serialize, Deserialize, Debug, Clone, Copy)]
 pub struct Time {
     hour: usize,

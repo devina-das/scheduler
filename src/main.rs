@@ -67,23 +67,23 @@ impl eframe::App for SchedulerApp {
                 ui.label("Day:");
                 egui::ComboBox::from_id_source("day_combo")
                     .selected_text(match self.new_day_idx {
-                        0 => "Mon",
-                        1 => "Tue",
-                        2 => "Wed",
-                        3 => "Thu",
-                        4 => "Fri",
-                        5 => "Sat",
-                        6 => "Sun",
+                        0 => "Sun",
+                        1 => "Mon",
+                        2 => "Tue",
+                        3 => "Wed",
+                        4 => "Thu",
+                        5 => "Fri",
+                        6 => "Sat",
                         _ => "Mon",
                     })
                     .show_ui(ui, |ui| {
-                        ui.selectable_value(&mut self.new_day_idx, 0, "Mon");
-                        ui.selectable_value(&mut self.new_day_idx, 1, "Tue");
-                        ui.selectable_value(&mut self.new_day_idx, 2, "Wed");
-                        ui.selectable_value(&mut self.new_day_idx, 3, "Thu");
-                        ui.selectable_value(&mut self.new_day_idx, 4, "Fri");
-                        ui.selectable_value(&mut self.new_day_idx, 5, "Sat");
-                        ui.selectable_value(&mut self.new_day_idx, 6, "Sun");
+                        ui.selectable_value(&mut self.new_day_idx, 0, "Sun");
+                        ui.selectable_value(&mut self.new_day_idx, 1, "Mon");
+                        ui.selectable_value(&mut self.new_day_idx, 2, "Tue");
+                        ui.selectable_value(&mut self.new_day_idx, 3, "Wed");
+                        ui.selectable_value(&mut self.new_day_idx, 4, "Thu");
+                        ui.selectable_value(&mut self.new_day_idx, 5, "Fri");
+                        ui.selectable_value(&mut self.new_day_idx, 6, "Sat");
                     });
             });
 
@@ -94,7 +94,7 @@ impl eframe::App for SchedulerApp {
                 // client-side validation of time format (H.MM) to give immediate feedback
                 match Time::new(String::from(self.new_time.trim())) {
                     Ok(t) => {
-                        if let Ok(day) = DayOfWeek::try_from(self.new_day_idx) {
+                        if let Ok(day) = self.new_day_idx.try_into() {
                             let title = std::mem::take(&mut self.new_title);
                             let desc = std::mem::take(&mut self.new_desc);
                             self.schedule.add_task(day, title.clone(), t, desc);
@@ -117,7 +117,8 @@ impl eframe::App for SchedulerApp {
             // fetch all tasks from the library accessor and present them grouped by day
             let tasks = self.schedule.all_tasks();
             for day in all::<DayOfWeek>() {
-                egui::CollapsingHeader::new(day.to_string()).show(ui, |ui| {
+                let day_text = format!("{} - {}", day.to_string(), day.date());
+                egui::CollapsingHeader::new(day_text).show(ui, |ui| {
                     let mut any = false;
                     for t in tasks.iter().filter(|t| t.0 == day) {
                         any = true;
@@ -136,7 +137,7 @@ impl eframe::App for SchedulerApp {
                             if ui.small_button("Edit").clicked() {
                                 self.new_title = title.clone();
                                 self.new_time = time.to_string();
-                                self.new_day_idx = day.to_idx();
+                                self.new_day_idx = day.into();
                                 self.new_desc = desc.clone();
                                 self.status_message = format!("Editing {} @ {}. Click \"Add Task\" when done.", title, time.to_string());
                                 self.schedule.remove_task(id);

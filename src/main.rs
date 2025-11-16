@@ -1,4 +1,4 @@
-use schedule::*;
+use scheduler::*;
 use eframe::egui;
 
 fn main() -> eframe::Result<()> {
@@ -11,24 +11,28 @@ fn main() -> eframe::Result<()> {
 }
 
 struct SchedulerApp {
-    list: List,
+    schedule: Schedule,
     new_title: String,
     new_desc: String,
     new_time: String,
     new_day_idx: usize,
-    remove_id: String,
     status_message: String,
 }
 
 impl Default for SchedulerApp {
     fn default() -> Self {
+        let schedule;
+        if let Ok(sched) = Schedule::read_tasks() {
+            schedule = sched;
+        } else {
+            schedule = Schedule::default();
+        }
         Self {
-            list: List::default(),
+            schedule: schedule,
             new_title: String::new(),
             new_desc: String::new(),
             new_time: String::new(),
             new_day_idx: 0,
-            remove_id: String::new(),
             status_message: String::new(),
         }
     }
@@ -37,7 +41,16 @@ impl Default for SchedulerApp {
 impl eframe::App for SchedulerApp {
     fn update(&mut self, ctx: &egui::Context, _frame: &mut eframe::Frame) {
         egui::CentralPanel::default().show(ctx, |ui| {
-            ui.heading("Scheduler GUI");
+            ui.horizontal(|ui| {
+                ui.heading("Scheduler GUI");
+                if ui.small_button("Save").clicked() {
+                    if self.schedule.write_file().is_err() {
+                        self.status_message = String::from("File could not be saved.");
+                    } else {
+                        self.status_message = String::from("File saved");
+                    }
+                }
+            });
             ui.separator();
 
             ui.horizontal(|ui| {
@@ -81,18 +94,18 @@ impl eframe::App for SchedulerApp {
                 // client-side validation of time format (H.MM) to give immediate feedback
                 match Time::new(String::from(self.new_time.trim())) {
                     Ok(t) => {
-                        if let Some(day) = idx_to_day(self.new_day_idx) {
+                        if let Ok(day) = DayOfWeek::try_from(self.new_day_idx) {
                             let title = std::mem::take(&mut self.new_title);
                             let desc = std::mem::take(&mut self.new_desc);
-                            self.list.add_task(day, title.clone(), t, desc);
+                            self.schedule.add_task(day, title.clone(), t, desc);
                             self.status_message = format!("Added {} @ {} on {}", title.clone(), t.to_string(), day.to_string());
                             self.new_time.clear();
                         }
                     }
                     Err(error) => {
                         match error {
-                            SchedulerError::InvalidTimeFormat => self.status_message = String::from("Invalid time format. Use HH.MM (e.g. 9.30)"),
-                            SchedulerError::InvalidTime => self.status_message = String::from("Invalid time")
+                            TimeError::InvalidTimeFormat => self.status_message = String::from("Invalid time format. Use HH:MM (e.g. 9:30)"),
+                            TimeError::InvalidTime => self.status_message = String::from("Invalid time")
                         }
                     }
                 }
@@ -102,7 +115,7 @@ impl eframe::App for SchedulerApp {
             ui.label("Tasks:");
 
             // fetch all tasks from the library accessor and present them grouped by day
-            let tasks = self.list.all_tasks();
+            let tasks = self.schedule.all_tasks();
             for day in all::<DayOfWeek>() {
                 egui::CollapsingHeader::new(day.to_string()).show(ui, |ui| {
                     let mut any = false;
@@ -117,7 +130,7 @@ impl eframe::App for SchedulerApp {
                         ui.horizontal(|ui| {
                             ui.label(format!("{} @ {}", title, time.to_string()));
                             if ui.small_button("Remove").clicked() {
-                                self.list.remove_task(id);
+                                self.schedule.remove_task(id);
                                 self.status_message = format!("Removed {} @ {}", title, time.to_string());
                             }
                             if ui.small_button("Edit").clicked() {
@@ -126,7 +139,7 @@ impl eframe::App for SchedulerApp {
                                 self.new_day_idx = day.to_idx();
                                 self.new_desc = desc.clone();
                                 self.status_message = format!("Editing {} @ {}. Click \"Add Task\" when done.", title, time.to_string());
-                                self.list.remove_task(id);
+                                self.schedule.remove_task(id);
                             }
 
                         });

@@ -1,19 +1,23 @@
-pub use indexmap::IndexMap;
-pub use std::{cmp::Ordering};
+use indexmap::IndexMap;
+use std::{cmp::Ordering};
 pub use enum_iterator::{all, Sequence};
 
-#[derive(Debug, Clone, Copy)]
-pub enum SchedulerError {
+use std::fs::File;
+use std::io::{BufReader};
+use serde::{Serialize, Deserialize};
+
+#[derive(Serialize, Deserialize, Debug, Clone, Copy)]
+pub enum TimeError {
     InvalidTimeFormat, InvalidTime
 }
 
-pub enum TaskAttribute {
-    Title, Day, Time, Desc 
+pub enum FileError {
+    FileReadError, FileWriteError
 }
 
 // -----------------------------------------------DayOfWeek-----------------------------------------------
 
-#[derive(Sequence, Hash, PartialEq, Eq, Debug, Clone, Copy)]
+#[derive(Serialize, Deserialize, Sequence, Hash, PartialEq, Eq, Debug, Clone, Copy)]
 pub enum DayOfWeek {
     Mon, Tue, Wed, Thu, Fri, Sat, Sun
 }
@@ -32,6 +36,22 @@ impl ToString for DayOfWeek {
     }
 }
 
+impl TryFrom<usize> for DayOfWeek {
+    type Error = ();
+    fn try_from(value: usize) -> Result<Self, Self::Error> {
+        match value {
+            0 => Ok(DayOfWeek::Mon),
+            1 => Ok(DayOfWeek::Tue),
+            2 => Ok(DayOfWeek::Wed),
+            3 => Ok(DayOfWeek::Thu),
+            4 => Ok(DayOfWeek::Fri),
+            5 => Ok(DayOfWeek::Sat),
+            6 => Ok(DayOfWeek::Sun),
+            _ => Err(())
+        }
+    }
+}
+
 impl DayOfWeek {
     pub fn to_idx(&self) -> usize {
         match self {
@@ -45,23 +65,10 @@ impl DayOfWeek {
         }
     }
 }
-
-pub fn idx_to_day(idx: usize) -> Option<DayOfWeek> {
-    match idx {
-        0 => Some(DayOfWeek::Mon),
-        1 => Some(DayOfWeek::Tue),
-        2 => Some(DayOfWeek::Wed),
-        3 => Some(DayOfWeek::Thu),
-        4 => Some(DayOfWeek::Fri),
-        5 => Some(DayOfWeek::Sat),
-        6 => Some(DayOfWeek::Sun),
-        _ => None,
-    }
-}
 // -----------------------------------------------Time-----------------------------------------------
 
 // TIME FORMAT
-#[derive(Debug, Clone, Copy)]
+#[derive(Serialize, Deserialize, Debug, Clone, Copy)]
 pub struct Time {
     hour: usize,
     mins: usize
@@ -95,24 +102,24 @@ impl PartialOrd for Time {
 
 impl Time {
     // NEW TIME -> from String input
-    pub fn new(time: String) -> Result<Self, SchedulerError> {
+    pub fn new(time: String) -> Result<Self, TimeError> {
         let parts: Vec<&str> = time.split(":").collect();
         if parts.len() != 2 {
-            return Err(SchedulerError::InvalidTimeFormat);
+            return Err(TimeError::InvalidTimeFormat);
         }
 
         let hour = parts[0].parse::<usize>();
         let min = parts[1].parse::<usize>();
 
         if hour.is_err() || min.is_err() {
-            return Err(SchedulerError::InvalidTime);
+            return Err(TimeError::InvalidTime);
         }
 
         let h_checked = hour.unwrap();
         let m_checked = min.unwrap();
 
         if h_checked > 23 || m_checked > 59 {
-            return Err(SchedulerError::InvalidTime);
+            return Err(TimeError::InvalidTime);
         }
         Ok(Self {
             hour: h_checked,
@@ -125,7 +132,7 @@ impl Time {
 // -----------------------------------------------Task-----------------------------------------------
 
 // CHANGED: time (f64) -> time (Time)
-#[derive(Debug, Clone)]
+#[derive(Serialize, Deserialize, Debug, Clone)]
 pub struct Task {
     id: usize,
     day: DayOfWeek,
@@ -134,28 +141,15 @@ pub struct Task {
     desc: String,
 }
 
-impl Task {
-    // DISPLAY TASK
-    //      #0 - Task 1 @ 5.45
-    //                This is our first task
-    pub fn display(&self) {
-        println!("#{} - {} @ {}", self.id, self.title, self.time.to_string());
-        print!("          ");
-        println!("{}", self.desc);
-    }
-
-    pub fn get_info(&self) -> (DayOfWeek, String, Time, String) {
-        (self.day, self.title.clone(), self.time, self.desc.clone())
-    }
-}
-
 // -----------------------------------------------List-----------------------------------------------
-pub struct List {
+#[derive(Serialize, Deserialize, Debug, Clone)]
+pub struct Schedule {
     next_id: usize,
     schedule: IndexMap<DayOfWeek, Vec<Task>>
 }
 
-impl Default for List {
+// OLD NAME -> List
+impl Default for Schedule {
     // CHANGED: simplified the function
     fn default() -> Self {
         Self {
@@ -165,7 +159,7 @@ impl Default for List {
     }
 }
 
-impl List {
+impl Schedule {
     // ADD TASK
     // CHANGED: accepts Time insted of f64
     pub fn add_task(&mut self, day: DayOfWeek, title: String, time: Time, desc: String) {
@@ -185,15 +179,28 @@ impl List {
             None => return
         };
     }
-    
-    // DISPLAY TASKS
-    pub fn display(&self) {
-        println!("----------------------------------------");
-        for (day, tasks) in &self.schedule {
-            println!("{}", day.to_string());
-            for task in tasks {
-                task.display();
+
+    // READ FILE DATA
+    pub fn read_tasks() -> Result<Self, FileError>{
+        let path = "scheduler.json";
+        if let Ok(file) = File::open(path) {
+            let reader = BufReader::new(file);
+            if let Ok(data) = serde_json::from_reader::<_, Schedule>(reader) {
+                return Ok(Self {next_id: data.next_id, schedule: data.schedule});
             }
+        }
+        return Err(FileError::FileReadError);
+    }
+
+    // WRITE FILE DATA
+    pub fn write_file(&self) -> Result<(), FileError> {
+        let path = "scheduler.json";
+        match File::create(path) {
+            Ok(file) => {
+                serde_json::to_writer_pretty(file, &self).unwrap();
+                Ok(())
+            },
+            Err(_e) => Err(FileError::FileWriteError)
         }
     }
 

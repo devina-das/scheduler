@@ -1,0 +1,23 @@
+{
+  "next_id": 4,
+  "schedule": {
+    "Mon": [
+      {
+        "id": 3,
+        "day": "Mon",
+        "title": "Task 1",
+        "time": {
+          "hour": 4,
+          "mins": 0
+        },
+        "desc": "sdfs"
+      }
+    ],
+    "Tue": [],
+    "Wed": [],
+    "Thu": [],
+    "Fri": [],
+    "Sat": [],
+    "Sun": []
+  }
+}

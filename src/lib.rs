@@ -198,14 +198,15 @@ impl Schedule {
         self.next_id += 1;
     }
 
-
     // REMOVE TASK
-    pub fn remove_task(&mut self, target_id: usize) {
-        let task = self.get_task(target_id);
-        match task {
-            Some((tsk, idx)) => self.schedule.get_mut(&tsk.day).unwrap().remove(idx),
-            None => return
-        };
+    pub fn remove_task(&mut self, day: DayOfWeek, target_id: usize) {
+        let tasks = self.schedule.get_mut(&day).unwrap();
+        for idx in 0..tasks.len() {
+            if tasks[idx].id == target_id {
+                tasks.remove(idx);
+                return;
+            }
+        }
     }
 
     // READ FILE DATA
@@ -230,18 +231,6 @@ impl Schedule {
             },
             Err(_e) => Err(FileError::FileWriteError)
         }
-    }
-
-    // fetches task at specific id if it exists
-    pub fn get_task(&self, target_id: usize) -> Option<(Task, usize)> {
-        for (_, tasks) in self.schedule.iter() {
-            for idx in 0..tasks.len() {
-                if tasks[idx].id == target_id {
-                    return Some((tasks[idx].clone(), idx));
-                }
-            }
-        }
-        None
     }
 
     // public accessor to return all tasks with their day and fields as owned data

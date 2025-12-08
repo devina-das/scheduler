@@ -43,11 +43,12 @@ impl eframe::App for SchedulerApp {
         egui::CentralPanel::default().show(ctx, |ui| {
             ui.horizontal(|ui| {
                 ui.heading("Scheduler GUI");
-                if ui.small_button("Save").clicked() {
+                if ui.small_button("Save & Quit").clicked() {
                     if self.schedule.write_file().is_err() {
                         self.status_message = String::from("File could not be saved.");
                     } else {
                         self.status_message = String::from("File saved");
+                        ctx.send_viewport_cmd(egui::ViewportCommand::Close);
                     }
                 }
             });
@@ -131,7 +132,7 @@ impl eframe::App for SchedulerApp {
                         ui.horizontal(|ui| {
                             ui.label(format!("{} @ {}", title, time.to_string()));
                             if ui.small_button("Remove").clicked() {
-                                self.schedule.remove_task(id);
+                                self.schedule.remove_task(day, id);
                                 self.status_message = format!("Removed {} @ {}", title, time.to_string());
                             }
                             if ui.small_button("Edit").clicked() {
@@ -140,7 +141,7 @@ impl eframe::App for SchedulerApp {
                                 self.new_day_idx = day.into();
                                 self.new_desc = desc.clone();
                                 self.status_message = format!("Editing {} @ {}. Click \"Add Task\" when done.", title, time.to_string());
-                                self.schedule.remove_task(id);
+                                self.schedule.remove_task(day, id);
                             }
 
                         });

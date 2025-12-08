@@ -1,23 +1,23 @@
 {
-  "next_id": 4,
+  "next_id": 1,
   "schedule": {
-    "Mon": [
+    "Sun": [],
+    "Mon": [],
+    "Tue": [],
+    "Wed": [
       {
-        "id": 3,
-        "day": "Mon",
-        "title": "Task 1",
+        "id": 0,
+        "day": "Wed",
+        "title": "CS128H Final Submission",
         "time": {
-          "hour": 4,
-          "mins": 0
+          "hour": 23,
+          "mins": 59
         },
-        "desc": "sdfs"
+        "desc": "Requires <10 min video"
       }
     ],
-    "Tue": [],
-    "Wed": [],
     "Thu": [],
     "Fri": [],
-    "Sat": [],
-    "Sun": []
+    "Sat": []
   }
 }

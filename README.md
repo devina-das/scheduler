@@ -12,13 +12,11 @@ Goals & Objectives:
       
 Technical Descriptions:
 Users will interact with the program through commands such as add, edit, remove, and display. 
-- Add: Will allow the user to add a task with the following information (Title, Day, Time, Description).
+- Add: Will allow the user to add a task with the following information (Title, Date, Time, Description).
 - Edit: Will allow the user to edit some part of an existing task.
 - Remove: Will allow the user to remove a task.
 - Display: Will display all the tasks clearly to the user.
 
-We will use a struct to store task information: Title, Day, Time, and Description.
-We will use an enum to store the different days of the week (Mon - Sun)
 We will read/write to a file to store lists between user sessions. We may look into other ways to do this.
 
 Checkpoint 1: 
@@ -34,5 +32,11 @@ Possible challenges:
 - Making all tasks appear unique (might include an ID system?).
 - The user instructions are not clear enough for users.
 - Learning how to work with files
+
+TODO:
+- Incorporate egui_datepicker to replace current datepicker
+- Timestamps for timezone support?
+- Support ics?
   
 References: Barry mentioned it was an example project shared at the find-a-group meeting.
+

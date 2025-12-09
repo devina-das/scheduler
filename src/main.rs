@@ -1,5 +1,6 @@
 use scheduler::*;
 use eframe::egui;
+use chrono::Local;
 
 fn main() -> eframe::Result<()> {
     let options = eframe::NativeOptions::default();
@@ -14,28 +15,27 @@ struct SchedulerApp {
     schedule: Schedule,
     new_title: String,
     new_desc: String,
+    new_date: Date,
     new_hour: usize,
     new_min: usize,
-    new_day_idx: usize,
     status_message: String,
+    editing_id: Option<usize>,
 }
 
 impl Default for SchedulerApp {
     fn default() -> Self {
-        let schedule;
-        if let Ok(sched) = Schedule::read_tasks() {
-            schedule = sched;
-        } else {
-            schedule = Schedule::default();
-        }
+        let schedule = Schedule::read_tasks().unwrap_or_else(|_| Schedule::default());
+        let today = Date::from_naive(Local::now().date_naive());
+
         Self {
-            schedule: schedule,
+            schedule,
             new_title: String::new(),
             new_desc: String::new(),
+            new_date: today,
             new_hour: 9,
             new_min: 0,
-            new_day_idx: 0,
             status_message: String::new(),
+            editing_id: None,
         }
     }
 }
@@ -60,15 +60,133 @@ impl eframe::App for SchedulerApp {
             ui.columns(2, |columns| {
                 // LEFT PANEL - Event Creation/Editing
                 columns[0].vertical(|ui| {
-                    ui.heading("New Event");
+                    let heading = if self.editing_id.is_some() {
+                        "Edit Event"
+                    } else {
+                        "New Event"
+                    };
+                    ui.heading(heading);
                     ui.separator();
 
                     ui.label("Title:");
                     ui.text_edit_singleline(&mut self.new_title);
 
+
+                    
+                    // Date input field
+                        ui.label("Date:");
+                        let mut date_str = format!("{:04}-{:02}-{:02}", self.new_date.year, self.new_date.month, self.new_date.day);
+                        if ui.text_edit_singleline(&mut date_str).changed() {
+                            let parts: Vec<&str> = date_str.split('-').collect();
+                            if parts.len() == 3 {
+                                if let (Ok(y), Ok(m), Ok(d)) = (parts[0].parse::<i32>(), parts[1].parse::<u32>(), parts[2].parse::<u32>()) {
+                                    if let Some(naive_date) = chrono::NaiveDate::from_ymd_opt(y, m, d) {
+                                        self.new_date = Date::from_naive(naive_date);
+                                    }
+                                }
+                            }
+                        }
+                    
+                    // Simple inline date picker
+                    ui.separator();
+                    ui.label("Pick from calendar:");
+                    
+                    // Month/Year navigation
+                    ui.horizontal(|ui| {
+                        if ui.small_button("◀ Prev Month").clicked() {
+                            if self.new_date.month == 1 {
+                                self.new_date.month = 12;
+                                self.new_date.year -= 1;
+                            } else {
+                                self.new_date.month -= 1;
+                            }
+                        }
+                        ui.label(format!("{:02}/{}", self.new_date.month, self.new_date.year));
+                        if ui.small_button("Next Month ▶").clicked() {
+                            if self.new_date.month == 12 {
+                                self.new_date.month = 1;
+                                self.new_date.year += 1;
+                            } else {
+                                self.new_date.month += 1;
+                            }
+                        }
+                    });
+                    
+                    // Weekday headers
+                    ui.horizontal(|ui| {
+                        for day_label in &["Sun", "Mon", "Tue", "Wed", "Thu", "Fri", "Sat"] {
+                            ui.vertical(|ui| {
+                                ui.set_width(30.0);
+                                ui.centered_and_justified(|ui| {
+                                    ui.label(*day_label);
+                                });
+                            });
+                        }
+                    });
+                    
+                    // Day grid
+                    if let Some(first_day) = chrono::NaiveDate::from_ymd_opt(self.new_date.year, self.new_date.month, 1) {
+                        use chrono::Datelike;
+                        let first_weekday = first_day.weekday().num_days_from_sunday() as usize;
+                        
+                        let days_in_month = if self.new_date.month == 12 {
+                            31
+                        } else {
+                            match chrono::NaiveDate::from_ymd_opt(self.new_date.year, self.new_date.month + 1, 1) {
+                                Some(next) => {
+                                    let prev = next.pred_opt().unwrap();
+                                    prev.day()
+                                }
+                                None => 31,
+                            }
+                        };
+                        
+                        let mut day = 1u32;
+                        let mut offset = first_weekday;
+                        
+                        for _ in 0..6 {
+                            if day > days_in_month {
+                                break;
+                            }
+                            ui.horizontal(|ui| {
+                                for _ in 0..7 {
+                                    ui.vertical(|ui| {
+                                        ui.set_width(30.0);
+                                        if offset > 0 {
+                                            ui.label(" ");
+                                            offset -= 1;
+                                        } else if day <= days_in_month {
+                                            let is_selected = day == self.new_date.day;
+                                            let btn_color = if is_selected {
+                                                egui::Color32::from_rgb(100, 150, 255)
+                                            } else {
+                                                egui::Color32::from_rgb(200, 200, 200)
+                                            };
+                                            let btn = egui::Button::new(
+                                                egui::RichText::new(day.to_string())
+                                                    .color(if is_selected { egui::Color32::WHITE } else { egui::Color32::BLACK })
+                                            ).fill(btn_color);
+                                            
+                                            if ui.add(btn).clicked() {
+                                                self.new_date.day = day;
+                                            }
+                                            day += 1;
+                                        } else {
+                                            ui.label(" ");
+                                        }
+                                    });
+                                }
+                            });
+                        }
+                    }
+                    ui.label(format!(
+                        "Selected: {} - {}",
+                        self.new_date.to_string(),
+                        self.new_date.day_of_week().to_string()
+                    ));
+
                     ui.label("Time:");
                     ui.horizontal(|ui| {
-                        // Hour input with up/down buttons
                         ui.vertical(|ui| {
                             ui.set_width(ui.available_width() / 2.0 - 8.0);
                             if ui.small_button("▲").clicked() {
@@ -85,7 +203,6 @@ impl eframe::App for SchedulerApp {
                             }
                         });
                         ui.label(":");
-                        // Minute input with up/down buttons
                         ui.vertical(|ui| {
                             ui.set_width(ui.available_width());
                             if ui.small_button("▲").clicked() {
@@ -103,46 +220,48 @@ impl eframe::App for SchedulerApp {
                         });
                     });
 
-                    ui.label("Day:");
-                    egui::ComboBox::from_id_source("day_combo")
-                        .selected_text(match self.new_day_idx {
-                            0 => "Sun",
-                            1 => "Mon",
-                            2 => "Tue",
-                            3 => "Wed",
-                            4 => "Thu",
-                            5 => "Fri",
-                            6 => "Sat",
-                            _ => "Mon",
-                        })
-                        .show_ui(ui, |ui| {
-                            ui.selectable_value(&mut self.new_day_idx, 0, "Sun");
-                            ui.selectable_value(&mut self.new_day_idx, 1, "Mon");
-                            ui.selectable_value(&mut self.new_day_idx, 2, "Tue");
-                            ui.selectable_value(&mut self.new_day_idx, 3, "Wed");
-                            ui.selectable_value(&mut self.new_day_idx, 4, "Thu");
-                            ui.selectable_value(&mut self.new_day_idx, 5, "Fri");
-                            ui.selectable_value(&mut self.new_day_idx, 6, "Sat");
-                        });
-
                     ui.label("Description:");
                     ui.text_edit_multiline(&mut self.new_desc);
 
-                    if ui.button("Add Task").clicked() {
-                        // Validate hour and minute
-                        if self.new_hour > 23 || self.new_min > 59 {
-                            self.status_message = String::from("Invalid time. Hour must be 0-23, minute 0-59.");
+                    let button_label = if self.editing_id.is_some() {
+                        "Update Task"
+                    } else {
+                        "Add Task"
+                    };
+
+                    if ui.button(button_label).clicked() {
+                        if self.new_title.is_empty() {
+                            self.status_message = String::from("Title cannot be empty.");
                         } else {
                             let t = Time { hour: self.new_hour, mins: self.new_min };
-                            if let Ok(day) = self.new_day_idx.try_into() {
-                                let title = std::mem::take(&mut self.new_title);
-                                let desc = std::mem::take(&mut self.new_desc);
-                                self.schedule.add_task(day, title.clone(), t, desc);
-                                self.status_message = format!("Added {} @ {} on {}", title.clone(), t.to_string(), day.to_string());
-                                // Optionally reset time to default
-                                // self.new_hour = 9;
-                                // self.new_min = 0;
+                            let title = std::mem::take(&mut self.new_title);
+                            let desc = std::mem::take(&mut self.new_desc);
+
+                            if let Some(id) = self.editing_id {
+                                self.schedule.update_task(id, self.new_date, title.clone(), t, desc);
+                                self.status_message = format!("Updated {} @ {} on {}", title, t.to_string(), self.new_date.to_string());
+                                self.editing_id = None;
+                            } else {
+                                self.schedule.add_task(self.new_date, title.clone(), t, desc);
+                                self.status_message = format!("Added {} @ {} on {}", title, t.to_string(), self.new_date.to_string());
                             }
+
+                            let today = Date::from_naive(Local::now().date_naive());
+                            self.new_date = today;
+                            self.new_hour = 9;
+                            self.new_min = 0;
+                        }
+                    }
+
+                    if self.editing_id.is_some() {
+                        if ui.button("Cancel Edit").clicked() {
+                            self.new_title.clear();
+                            self.new_desc.clear();
+                            self.new_date = Date::from_naive(Local::now().date_naive());
+                            self.new_hour = 9;
+                            self.new_min = 0;
+                            self.editing_id = None;
+                            self.status_message.clear();
                         }
                     }
 
@@ -158,44 +277,37 @@ impl eframe::App for SchedulerApp {
                     ui.separator();
 
                     let tasks = self.schedule.all_tasks();
-                    for day in all::<DayOfWeek>() {
-                        let day_text = format!("{} - {}", day.to_string(), day.date());
-                        egui::CollapsingHeader::new(day_text).show(ui, |ui| {
-                            let mut any = false;
-                            for t in tasks.iter().filter(|t| t.0 == day) {
-                                any = true;
-                                // t is a reference to (DayOfWeek, usize, String, Time, String)
-                                let id = t.1;
-                                let title = &t.2;
-                                let time = t.3;
-                                let desc = &t.4;
+                    if tasks.is_empty() {
+                        ui.label("No tasks scheduled");
+                    } else {
+                        for task in tasks {
+                            let id = task.0;
+                            let date = task.1;
+                            let title = &task.2;
+                            let time = task.3;
+                            let desc = &task.4;
 
-                                ui.horizontal(|ui| {
-                                    ui.label(format!("{} @ {}", title, time.to_string()));
-                                    if ui.small_button("Remove").clicked() {
-                                        self.schedule.remove_task(day, id);
-                                        self.status_message = format!("Removed {} @ {}", title, time.to_string());
-                                    }
-                                    if ui.small_button("Edit").clicked() {
-                                        self.new_title = title.clone();
-                                        self.new_hour = time.hour;
-                                        self.new_min = time.mins;
-                                        self.new_day_idx = day.into();
-                                        self.new_desc = desc.clone();
-                                        self.status_message = format!("Editing {} @ {}. Click \"Add Task\" when done.", title, time.to_string());
-                                        self.schedule.remove_task(day, id);
-                                    }
-
-                                });
-                                ui.horizontal(|ui| {
-                                    ui.add_space(20.0);
-                                    ui.label(desc);
-                                });
-                            }
-                            if !any {
-                                ui.label("No tasks");
-                            }
-                        });
+                            ui.horizontal(|ui| {
+                                ui.label(format!("{} - {} @ {}", date.to_string(), title, time.to_string()));
+                                if ui.small_button("Edit").clicked() {
+                                    self.new_title = title.clone();
+                                    self.new_date = date;
+                                    self.new_hour = time.hour;
+                                    self.new_min = time.mins;
+                                    self.new_desc = desc.clone();
+                                    self.editing_id = Some(id);
+                                    self.status_message = format!("Editing {}. Click \"Update Task\" when done.", title);
+                                }
+                                if ui.small_button("Delete").clicked() {
+                                    self.schedule.remove_task(id);
+                                    self.status_message = format!("Deleted {} @ {}", title, time.to_string());
+                                }
+                            });
+                            ui.horizontal(|ui| {
+                                ui.add_space(20.0);
+                                ui.label(desc);
+                            });
+                        }
                     }
                 });
             });

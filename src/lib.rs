@@ -1,10 +1,9 @@
-use indexmap::IndexMap;
-use std::{cmp::Ordering};
+use std::cmp::Ordering;
 pub use enum_iterator::{all, Sequence};
-use chrono::{Datelike, Local, Duration};
+use chrono::{Datelike, NaiveDate, Weekday};
 
 use std::fs::File;
-use std::io::{BufReader};
+use std::io::BufReader;
 use serde::{Serialize, Deserialize};
 
 // -----------------------------------------------Errors-----------------------------------------------
@@ -67,31 +66,49 @@ impl From<DayOfWeek> for usize {
     }
 }
 
-impl From<DayOfWeek> for chrono::Weekday {
-    fn from(value: DayOfWeek) -> Self {
+impl From<Weekday> for DayOfWeek {
+    fn from(value: Weekday) -> Self {
         match value {
-            DayOfWeek::Sun => chrono::Weekday::Sun,
-            DayOfWeek::Mon => chrono::Weekday::Mon,
-            DayOfWeek::Tue => chrono::Weekday::Tue,
-            DayOfWeek::Wed => chrono::Weekday::Wed,
-            DayOfWeek::Thu => chrono::Weekday::Thu,
-            DayOfWeek::Fri => chrono::Weekday::Fri,
-            DayOfWeek::Sat => chrono::Weekday::Sat
+            Weekday::Sun => DayOfWeek::Sun,
+            Weekday::Mon => DayOfWeek::Mon,
+            Weekday::Tue => DayOfWeek::Tue,
+            Weekday::Wed => DayOfWeek::Wed,
+            Weekday::Thu => DayOfWeek::Thu,
+            Weekday::Fri => DayOfWeek::Fri,
+            Weekday::Sat => DayOfWeek::Sat
         }
     }
 }
 
-impl DayOfWeek {
-    pub fn date(&self) -> String {
-        let now = Local::now().date_naive();
+// -----------------------------------------------Date-----------------------------------------------
+#[derive(Serialize, Deserialize, Debug, Clone, Copy, PartialEq, Eq, PartialOrd, Ord)]
+pub struct Date {
+    pub year: i32,
+    pub month: u32,
+    pub day: u32,
+}
 
-        let sunday_diff = now.weekday().num_days_from_sunday();
-        let sunday = now - Duration::days(sunday_diff.into());
+impl ToString for Date {
+    fn to_string(&self) -> String {
+        format!("{:04}-{:02}-{:02}", self.year, self.month, self.day)
+    }
+}
 
-        let diff = chrono::Weekday::from(*self).num_days_from_sunday();
-        let date = sunday + Duration::days(diff.into());
+impl Date {
+    pub fn from_naive(date: NaiveDate) -> Self {
+        Self {
+            year: date.year(),
+            month: date.month(),
+            day: date.day(),
+        }
+    }
 
-        format!("{}/{}", date.month(), date.day())
+    pub fn to_naive(&self) -> NaiveDate {
+        NaiveDate::from_ymd_opt(self.year, self.month, self.day).unwrap()
+    }
+
+    pub fn day_of_week(&self) -> DayOfWeek {
+        self.to_naive().weekday().into()
     }
 }
 
@@ -159,89 +176,109 @@ impl Time {
 
 // -----------------------------------------------Task-----------------------------------------------
 
-// CHANGED: time (f64) -> time (Time)
 #[derive(Serialize, Deserialize, Debug, Clone)]
 pub struct Task {
-    id: usize,
-    day: DayOfWeek,
-    title: String,
-    time: Time,
-    desc: String,
+    pub id: usize,
+    pub date: Date,
+    pub title: String,
+    pub time: Time,
+    pub desc: String,
 }
 
-// -----------------------------------------------List-----------------------------------------------
+// -----------------------------------------------Schedule-----------------------------------------------
 #[derive(Serialize, Deserialize, Debug, Clone)]
 pub struct Schedule {
-    next_id: usize,
-    schedule: IndexMap<DayOfWeek, Vec<Task>>
+    pub next_id: usize,
+    pub tasks: Vec<Task>,
 }
 
-// OLD NAME -> List
 impl Default for Schedule {
-    // CHANGED: simplified the function
     fn default() -> Self {
         Self {
-            next_id : 0,
-            schedule: all::<DayOfWeek>().map(|day| (day, Vec::<Task>::new())).collect()
+            next_id: 0,
+            tasks: Vec::new(),
         }
     }
 }
 
 impl Schedule {
-    // ADD TASK
-    // CHANGED: accepts Time insted of f64
-    pub fn add_task(&mut self, day: DayOfWeek, title: String, time: Time, desc: String) {
-        let new_task = Task {id: self.next_id, day: day, title: title, time: time, desc: desc};
-        let target_day = self.schedule.get_mut(&day).unwrap();
-        target_day.push(new_task);
-        target_day.sort_by(|a, b| a.time.partial_cmp(&b.time).unwrap());
+    pub fn add_task(&mut self, date: Date, title: String, time: Time, desc: String) {
+        let new_task = Task {
+            id: self.next_id,
+            date,
+            title,
+            time,
+            desc,
+        };
+        self.tasks.push(new_task);
+        self.sort_tasks();
         self.next_id += 1;
     }
 
-    // REMOVE TASK
-    pub fn remove_task(&mut self, day: DayOfWeek, target_id: usize) {
-        let tasks = self.schedule.get_mut(&day).unwrap();
-        for idx in 0..tasks.len() {
-            if tasks[idx].id == target_id {
-                tasks.remove(idx);
-                return;
-            }
-        }
+    pub fn remove_task(&mut self, task_id: usize) {
+        self.tasks.retain(|t| t.id != task_id);
     }
 
-    // READ FILE DATA
-    pub fn read_tasks() -> Result<Self, FileError>{
+    pub fn update_task(
+        &mut self,
+        task_id: usize,
+        date: Date,
+        title: String,
+        time: Time,
+        desc: String,
+    ) {
+        if let Some(task) = self.tasks.iter_mut().find(|t| t.id == task_id) {
+            task.date = date;
+            task.title = title;
+            task.time = time;
+            task.desc = desc;
+        }
+        self.sort_tasks();
+    }
+
+    fn sort_tasks(&mut self) {
+        self.tasks.sort_by(|a, b| {
+            match a.date.cmp(&b.date) {
+                Ordering::Equal => a.time.partial_cmp(&b.time).unwrap_or(Ordering::Equal),
+                other => other,
+            }
+        });
+    }
+
+    pub fn read_tasks() -> Result<Self, FileError> {
         let path = "scheduler.json";
         if let Ok(file) = File::open(path) {
             let reader = BufReader::new(file);
             if let Ok(data) = serde_json::from_reader::<_, Schedule>(reader) {
-                return Ok(Self {next_id: data.next_id, schedule: data.schedule});
+                return Ok(data);
             }
         }
-        return Err(FileError::FileReadError);
+        Err(FileError::FileReadError)
     }
 
-    // WRITE FILE DATA
     pub fn write_file(&self) -> Result<(), FileError> {
         let path = "scheduler.json";
         match File::create(path) {
             Ok(file) => {
                 serde_json::to_writer_pretty(file, &self).unwrap();
                 Ok(())
-            },
-            Err(_e) => Err(FileError::FileWriteError)
+            }
+            Err(_e) => Err(FileError::FileWriteError),
         }
     }
 
-    // public accessor to return all tasks with their day and fields as owned data
-    // Returns a Vec of tuples: (DayOfWeek, id, title, time, desc)
-    pub fn all_tasks(&self) -> Vec<(DayOfWeek, usize, String, Time, String)> {
-        let mut out: Vec<(DayOfWeek, usize, String, Time, String)> = Vec::new();
-        for (_, tasks) in &self.schedule {
-            for task in tasks {
-                out.push((task.day, task.id, task.title.clone(), task.time, task.desc.clone()));
-            }
-        }
-        out
+    pub fn all_tasks(&self) -> Vec<(usize, Date, String, Time, String)> {
+        self.tasks
+            .iter()
+            .map(|task| (task.id, task.date, task.title.clone(), task.time, task.desc.clone()))
+            .collect()
+    }
+
+    pub fn tasks_by_day(&self, day: DayOfWeek) -> Vec<(usize, Date, String, Time, String)> {
+        self.tasks
+            .iter()
+            .filter(|task| task.date.day_of_week() == day)
+            .map(|task| (task.id, task.date, task.title.clone(), task.time, task.desc.clone()))
+            .collect()
     }
 }

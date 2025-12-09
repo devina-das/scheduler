@@ -1,7 +1,0 @@
-/Users/devinadas/projects/scheduler/target/debug/deps/cocoa_foundation-fa559611ff15d2ae.d: /Users/devinadas/.cargo/registry/src/index.crates.io-1949cf8c6b5b557f/cocoa-foundation-0.1.2/src/lib.rs /Users/devinadas/.cargo/registry/src/index.crates.io-1949cf8c6b5b557f/cocoa-foundation-0.1.2/src/base.rs /Users/devinadas/.cargo/registry/src/index.crates.io-1949cf8c6b5b557f/cocoa-foundation-0.1.2/src/foundation.rs
-
-/Users/devinadas/projects/scheduler/target/debug/deps/libcocoa_foundation-fa559611ff15d2ae.rmeta: /Users/devinadas/.cargo/registry/src/index.crates.io-1949cf8c6b5b557f/cocoa-foundation-0.1.2/src/lib.rs /Users/devinadas/.cargo/registry/src/index.crates.io-1949cf8c6b5b557f/cocoa-foundation-0.1.2/src/base.rs /Users/devinadas/.cargo/registry/src/index.crates.io-1949cf8c6b5b557f/cocoa-foundation-0.1.2/src/foundation.rs
-
-/Users/devinadas/.cargo/registry/src/index.crates.io-1949cf8c6b5b557f/cocoa-foundation-0.1.2/src/lib.rs:
-/Users/devinadas/.cargo/registry/src/index.crates.io-1949cf8c6b5b557f/cocoa-foundation-0.1.2/src/base.rs:
-/Users/devinadas/.cargo/registry/src/index.crates.io-1949cf8c6b5b557f/cocoa-foundation-0.1.2/src/foundation.rs:

@@ -1,23 +1,19 @@
 {
   "next_id": 1,
-  "schedule": {
-    "Sun": [],
-    "Mon": [],
-    "Tue": [],
-    "Wed": [
-      {
-        "id": 0,
-        "day": "Wed",
-        "title": "CS128H Final Submission",
-        "time": {
-          "hour": 23,
-          "mins": 59
-        },
-        "desc": "Requires <10 min video"
-      }
-    ],
-    "Thu": [],
-    "Fri": [],
-    "Sat": []
-  }
+  "tasks": [
+    {
+      "id": 0,
+      "date": {
+        "year": 2025,
+        "month": 12,
+        "day": 10
+      },
+      "title": "CS128H Final Submission",
+      "time": {
+        "hour": 23,
+        "mins": 59
+      },
+      "desc": "Requires <10 min video"
+    }
+  ]
 }

@@ -98,8 +98,8 @@ impl DayOfWeek {
 // -----------------------------------------------Time-----------------------------------------------
 #[derive(Serialize, Deserialize, Debug, Clone, Copy)]
 pub struct Time {
-    hour: usize,
-    mins: usize
+    pub hour: usize,
+    pub mins: usize
 }
 
 impl ToString for Time {

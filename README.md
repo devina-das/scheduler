@@ -2,11 +2,11 @@ Group Name: Group 11
 Members: Devina (djdas2) & Barry (barryl2)
 
 Project Introduction:
-Our project is a to-do list application that will let users create, view, and remove reminders for weekly tasks.
+Our project is a to-do list application that will let users create, view, and remove reminders for tasks.
 This will provide users with an efficient way to manage their responsibilities and deadlines.
 
 Goals & Objectives: 
-- Allow users to add, edit, remove, and display their tasks for the week.
+- Allow users to add, edit, remove, and display their tasks.
 - Learn and implement ways to store data between different user sessions.
 - Emphasize user-friendliness (make sure it's not too difficult/confusing to use).
       

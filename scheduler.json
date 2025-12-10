@@ -1,63 +1,63 @@
 {
-  "next_id": 4,
+  "next_id": 8,
   "tasks": [
     {
-      "id": 1,
+      "id": 4,
       "date": {
         "year": 2025,
         "month": 12,
         "day": 7
       },
-      "title": "Tomorrow",
+      "title": "Past Task",
       "time": {
-        "hour": 12,
+        "hour": 4,
         "min": 0,
         "post": false
       },
-      "desc": ""
+      "desc": "Past tasks are stikethroughed."
     },
     {
-      "id": 2,
+      "id": 5,
       "date": {
         "year": 2025,
         "month": 12,
-        "day": 9
+        "day": 10
       },
-      "title": "yes",
+      "title": "Task 1",
       "time": {
-        "hour": 12,
+        "hour": 9,
         "min": 0,
         "post": false
       },
-      "desc": ""
+      "desc": "Present tasks are blue."
     },
     {
-      "id": 0,
+      "id": 6,
       "date": {
         "year": 2025,
         "month": 12,
-        "day": 9
+        "day": 10
       },
-      "title": "New Task",
-      "time": {
-        "hour": 12,
-        "min": 5,
-        "post": false
-      },
-      "desc": ""
-    },
-    {
-      "id": 3,
-      "date": {
-        "year": 2025,
-        "month": 12,
-        "day": 9
-      },
-      "title": "hyh",
+      "title": "Task 2",
       "time": {
         "hour": 9,
         "min": 0,
         "post": true
+      },
+      "desc": ""
+    },
+    {
+      "id": 7,
+      "date": {
+        "year": 2025,
+        "month": 12,
+        "day": 11
+      },
+      "title": "Future Task",
+      "time": {
+        "hour": 9,
+        "min": 0,
+        "post": false
       },
       "desc": ""
     }

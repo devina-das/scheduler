@@ -184,36 +184,33 @@ impl eframe::App for SchedulerApp {
 
                     // Time Input
                     ui.label("Time:");
+                    let btn_size = [10.0, 10.0];
                     ui.horizontal(|ui| {
-                        let width = 30.0;
                         ui.vertical(|ui| {
-                            ui.set_width(width);
-                            if ui.small_button("▲").clicked() {
+                            if ui.add_sized(btn_size,egui::Button::new("+")).clicked() {
                                 self.new_time.hour = if self.new_time.hour >= 12 {1} else {self.new_time.hour + 1}
                             }
                             ui.label(format!("{:02}",self.new_time.hour));
-                            if ui.small_button("▼").clicked() {
+                            if ui.add_sized(btn_size,egui::Button::new("–")).clicked() {
                                self.new_time.hour = if self.new_time.hour <= 1 {12} else {self.new_time.hour - 1}
                             }
                         });
                         ui.label(":");
                         ui.vertical(|ui| {
-                            ui.set_width(width);
-                            if ui.small_button("▲").clicked() {
+                            if ui.add_sized(btn_size,egui::Button::new("+")).clicked() {
                                 self.new_time.min = if self.new_time.min >= 59 {0} else {self.new_time.min + 1}
                             }
                             ui.label(format!("{:02}",self.new_time.min));
-                            if ui.small_button("▼").clicked() {
+                            if ui.add_sized(btn_size,egui::Button::new("–")).clicked() {
                                self.new_time.min = if self.new_time.min <= 0 {59} else {self.new_time.min - 1}
                             }
                         });
                         ui.vertical(|ui| {
-                            ui.set_width(width);
-                            if ui.small_button("▲").clicked() {
+                            if ui.add_sized(btn_size,egui::Button::new("+")).clicked() {
                                 self.new_time.post = !self.new_time.post;
                             }
                             ui.label(if self.new_time.post {"PM"} else {"AM"});
-                            if ui.small_button("▼").clicked() {
+                            if ui.add_sized(btn_size,egui::Button::new("–")).clicked() {
                                self.new_time.post = !self.new_time.post;
                             }
                         });

@@ -1,5 +1,5 @@
 {
-  "next_id": 8,
+  "next_id": 10,
   "tasks": [
     {
       "id": 4,
@@ -32,7 +32,7 @@
       "desc": "Present tasks are blue."
     },
     {
-      "id": 6,
+      "id": 9,
       "date": {
         "year": 2025,
         "month": 12,
@@ -40,22 +40,7 @@
       },
       "title": "Task 2",
       "time": {
-        "hour": 9,
-        "min": 0,
-        "post": true
-      },
-      "desc": ""
-    },
-    {
-      "id": 7,
-      "date": {
-        "year": 2025,
-        "month": 12,
-        "day": 11
-      },
-      "title": "Future Task",
-      "time": {
-        "hour": 9,
+        "hour": 10,
         "min": 0,
         "post": false
       },

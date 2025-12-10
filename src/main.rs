@@ -72,17 +72,11 @@ impl eframe::App for SchedulerApp {
                     
                     // Date input field
                     ui.label("Date:");
-                    let mut date_str = format!("{:04}-{:02}-{:02}", self.new_date.year, self.new_date.month, self.new_date.day);
-                    if ui.text_edit_singleline(&mut date_str).changed() {
-                        let parts: Vec<&str> = date_str.split('-').collect();
-                        if parts.len() == 3 {
-                            if let (Ok(y), Ok(m), Ok(d)) = (parts[0].parse::<i32>(), parts[1].parse::<u32>(), parts[2].parse::<u32>()) {
-                                if let Some(naive_date) = chrono::NaiveDate::from_ymd_opt(y, m, d) {
-                                    self.new_date = Date::from(naive_date);
-                                }
-                            }
-                        }
-                    }
+                    ui.label(format!(
+                        "{} - {}",
+                        self.new_date.to_string(),
+                        Weekday::from(self.new_date).to_string()
+                    ));
                     
                     // Inline date picker
                     ui.separator();
@@ -176,11 +170,6 @@ impl eframe::App for SchedulerApp {
                             });
                         }
                     }
-                    ui.label(format!(
-                        "Selected: {} - {}",
-                        self.new_date.to_string(),
-                        Weekday::from(self.new_date).to_string()
-                    ));
 
                     // Time Input
                     ui.label("Time:");
